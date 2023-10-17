@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.net.http.SslError
@@ -30,7 +31,6 @@ import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
-import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.smoservice.medianews.databinding.ActivityMainBinding
@@ -119,7 +119,24 @@ class MainActivity : AppCompatActivity() {
         binding.faqBtn.setOnClickListener {
             binding.webView.loadUrl("https://smoservice.media/faq.php")
         }
+
+        val uri: Uri =
+            Uri.parse("android.resource://" + packageName.toString() + "/" + R.raw.intro)
+        binding.intro.setVideoURI(uri)
+        binding.intro.setBackgroundColor(Color.TRANSPARENT)
+        binding.intro.setZOrderOnTop(true)
+        binding.intro.start()
+        binding.intro.setOnCompletionListener {
+            binding.splash.isVisible = false
+            binding.intro.isVisible = false
+            if (checkInternetConnection(this@MainActivity)) {
+                binding.noInternetLayout.isVisible = false
+            }
+            firstStart = false
+        }
     }
+
+    private var firstStart = true
 
     override fun onSaveInstanceState(outState: Bundle, outPersistentState: PersistableBundle) {
         super.onSaveInstanceState(outState, outPersistentState)
@@ -134,9 +151,11 @@ class MainActivity : AppCompatActivity() {
     private inner class MyWebViewClient : WebViewClient() {
         override fun onPageFinished(view: WebView?, url: String?) {
             super.onPageFinished(view, url)
-            binding.splash.isVisible = false
-            if (checkInternetConnection(this@MainActivity)) {
-                binding.noInternetLayout.isVisible = false
+            if (!firstStart) {
+                binding.splash.isVisible = false
+                if (checkInternetConnection(this@MainActivity)) {
+                    binding.noInternetLayout.isVisible = false
+                }
             }
         }
 
@@ -211,6 +230,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun checkInternetConnection(context: Context): Boolean {
+        val con_manager =
+            context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        return (con_manager.activeNetworkInfo != null && con_manager.activeNetworkInfo!!.isAvailable
+                && con_manager.activeNetworkInfo!!.isConnected)
+    }
 
     private inner class MyWebChromeClient : WebChromeClient() {
         private var mCustomView: View? = null
